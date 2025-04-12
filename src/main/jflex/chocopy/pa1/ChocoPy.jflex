@@ -8,7 +8,7 @@ import java_cup.runtime.*;
 %unicode
 %line
 %column
-%states AFTER, STRING /*Linha adicionada, conforme manual Jflex para ESTADOS INCLUSIVOS */
+%state AFTER, STRING /*Linha adicionada, conforme manual Jflex para ESTADOS INCLUSIVOS */
 
 %class ChocoPyLexer
 %public
@@ -100,6 +100,8 @@ Comments = #[^\r\n]*
 
   /* Whitespace. */
   {WhiteSpace}                { /* ignore */ }
+  
+  yybegin(AFTER);
 }
 
 <STRING> {
@@ -123,6 +125,77 @@ Comments = #[^\r\n]*
     /* Tratar o caractere \ como uma continuação de linha. */
     \\$                          { /*'\' quando colocado no fim da linha, nada a fazer */ }
 
+}
+
+/* o ESTADO AFTER É USADO PARA CLASSIFICAR OS TOKENS ENCONTRADOS. 
+A FUNÇÃO SYMBOL() CONSTRÓI OBJETOS REPRESENTANDO OS ELEMENTOS LÉXICOS DO CÓDIGO.*/
+<AFTER>{
+
+ /* Boolean keywords */
+  "None"                         { return symbol(ChocoPyTokens.NONE); }
+  "True"                         { return symbol(ChocoPyTokens.BOOL, true); }
+  "False"                        { return symbol(ChocoPyTokens.BOOL, false); }
+
+  /*Keywords*/
+  "if"                           { return symbol(ChocoPyTokens.IF); }
+  "else"                         { return symbol(ChocoPyTokens.ELSE); }
+  "elif"                         { return symbol(ChocoPyTokens.ELIF); }
+  "for"                          { return symbol(ChocoPyTokens.FOR); }
+  "while"                        { return symbol(ChocoPyTokens.WHILE); }
+  "class"                        { return symbol(ChocoPyTokens.CLASS); }
+  "def"                          { return symbol(ChocoPyTokens.DEF); }
+  "in"                           { return symbol(ChocoPyTokens.IN); }
+  "global"                       { return symbol(ChocoPyTokens.GLOBAL); }
+  "nonlocal"                     { return symbol(ChocoPyTokens.NONLOCAL); }
+  "pass"                         { return symbol(ChocoPyTokens.PASS); }
+  "return"                       { return symbol(ChocoPyTokens.RETURN); }
+  "assert"                       { return symbol(ChocoPyTokens.ASSERT); }
+  "await"                        { return symbol(ChocoPyTokens.AWAIT); }
+  "break"                        { return symbol(ChocoPyTokens.BREAK); }
+  "continue"                     { return symbol(ChocoPyTokens.CONTINUE); }
+  "del"                          { return symbol(ChocoPyTokens.DEL); }
+  "lambda"                       { return symbol(ChocoPyTokens.LAMBDA); }
+  "as"                           { return symbol(ChocoPyTokens.AS); }
+  "except"                       { return symbol(ChocoPyTokens.EXCEPT); }
+  "finally"                      { return symbol(ChocoPyTokens.FINALLY); }
+  "from"                         { return symbol(ChocoPyTokens.FROM); }
+  "import"                       { return symbol(ChocoPyTokens.IMPORT); }
+  "raise"                        { return symbol(ChocoPyTokens.RAISE); }
+  "try"                          { return symbol(ChocoPyTokens.TRY); }
+  "with"                         { return symbol(ChocoPyTokens.WITH); }
+  "yield"                        { return symbol(ChocoPyTokens.YIELD); }
+
+
+  /* Operators. */
+  "+"                            { return symbol(ChocoPyTokens.PLUS); }
+  "-"                            { return symbol(ChocoPyTokens.MINUS); }
+  "*"                            { return symbol(ChocoPyTokens.MUL); }
+  "//"                           { return symbol(ChocoPyTokens.DIV); }
+  "/"                            { return symbol(ChocoPyTokens.DIV); }
+  "%"                            { return symbol(ChocoPyTokens.MOD); }
+  ">"                            { return symbol(ChocoPyTokens.GT); }
+  ">="                           { return symbol(ChocoPyTokens.GEQ); }
+  "->"                           { return symbol(ChocoPyTokens.ARROW); }
+  "<"                            { return symbol(ChocoPyTokens.LT); }
+  "<="                           { return symbol(ChocoPyTokens.LEQ); }
+  "="                            { return symbol(ChocoPyTokens.ASSIGN); }
+  "=="                           { return symbol(ChocoPyTokens.EQUAL); }
+  "!="                           { return symbol(ChocoPyTokens.NEQ); }
+  "and"                          { return symbol(ChocoPyTokens.AND); }
+  "or"                           { return symbol(ChocoPyTokens.OR); }
+  "not"                          { return symbol(ChocoPyTokens.NOT); }
+  "is"                           { return symbol(ChocoPyTokens.IS); }
+  "("                            { return symbol(ChocoPyTokens.LPAR); }
+  ")"                            { return symbol(ChocoPyTokens.RPAR); }
+  "["                            { return symbol(ChocoPyTokens.LBR); }
+  "]"                            { return symbol(ChocoPyTokens.RBR); }
+  "."                            { return symbol(ChocoPyTokens.DOT); }
+
+ /* Whitespace. */
+   {WhiteSpace}                   { /* ignore */ }
+
+ /* Comment. */
+   {Comments}                     { /* ignore */ }
 }
 
 <<EOF>>                       { return symbol(ChocoPyTokens.EOF); }
