@@ -8,7 +8,8 @@ import java_cup.runtime.*;
 %unicode
 %line
 %column
-%state AFTER, STRING /*Linha adicionada, conforme manual Jflex para ESTADOS INCLUSIVOS */
+/***Linha adicionada, conforme manual Jflex para ESTADOS INCLUSIVOS ***/
+%state STRING, AFTER
 
 %class ChocoPyLexer
 %public
@@ -101,7 +102,7 @@ Comments = #[^\r\n]*
   /* Whitespace. */
   {WhiteSpace}                { /* ignore */ }
   
-  yybegin(AFTER);
+  /*yybegin(AFTER);*/
 }
 
 <STRING> {
