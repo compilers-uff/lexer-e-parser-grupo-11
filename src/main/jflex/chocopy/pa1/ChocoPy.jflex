@@ -52,10 +52,28 @@ import java_cup.runtime.*;
 
 /* Macros (regexes used in rules below) */
 
+    /* ----Velho--- */
+    /* 1. WhiteSpace */
+    /* Padrão: [ t] Representa os espaços e tabulações */
 WhiteSpace = [ \t]
+    /* 2. LineBreak */
+    /* Padrão: r|n|rn Representa vários formatos de quebra de linha, incluindo Unix (n), Windows (rn) e Mac clássico (r). */
 LineBreak  = \r|\n|\r\n
-
+    /* 3. IntegerLiteral */
+    /* Padrão: 0|[1-9][0-9]* Representa inicialiar com 0 ou inteiros começando com um dígito diferente de zero seguido por dígitos. Vários zeros à esquerda não são permitidos. */
 IntegerLiteral = 0 | [1-9][0-9]*
+
+/* ----Novo--- */
+    /* 4.Identifiers */
+    /* Um identificador começa com um sublinhado (_) ou qualquer letra (a-z, A-Z), seguido por zero ou mais sublinhados, letras ou dígitos (0-9). */
+Identifiers = (_|[a-z]|[A-Z])(_|[a-z]|[A-Z]|[0-9])*
+    /* 5. StringLiteral */
+    /* Padrão: ([^"]|( ")|(t)|(r)|(n)|())+ Strings entre aspas, permite caracteres de escape, como ", , n, r ou t. */
+StringLiteral = ([^\"\\]|(\\\")|(\\t)|(\\r)|(\\n)|(\\\\))+
+    /* 6. Comments */
+    /* Padrão: #[^]* São os comentários que começam com #, e vai até o final da linha. */
+Comments = #[^\r\n]*
+/*---FIM---*/
 
 %%
 
