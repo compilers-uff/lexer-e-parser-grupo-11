@@ -1,7 +1,9 @@
 package chocopy.pa1;
 import java_cup.runtime.*;
-import java.util.ArrayList; // A bibllioteca ArrayList será utilizada para realizar a pilha de indentação.
-import java.util.Iterator; // A biblioteca Iterator será usada para percorrer a pilha (usado em 'find').
+/* A biblioteca ArrayList será utilizada para realizar a pilha de indentação.*/
+import java.util.ArrayList;
+/* A biblioteca Iterator será usada para percorrer a pilha (usado em 'find').*/
+import java.util.Iterator;
 
 %%
 
@@ -35,28 +37,29 @@ import java.util.Iterator; // A biblioteca Iterator será usada para percorrer a
     private String currentString = "";
     
     /*Esses dois inteiros (str_line e str_column) representam a linha (line) e a coluna (column) em que um literal da cadeia
-    de caracteres começa na entrada. Vai rastrear locais no código-fonte onde há erros ou depuração.
-    private int str_line = 0, str_column = 0; //Ponto inicial de uma string.
+    de caracteres começa na entrada. Vai rastrear locais no código-fonte onde há erros ou depuração.*/
+    private int str_line = 0, str_column = 0;
 
-    /** Producer of token-related values for the parser. */
+    /** Producer of token-related values for the parser. **/
     final ComplexSymbolFactory symbolFactory = new ComplexSymbolFactory();
 
     /** Return a terminal symbol of syntactic category TYPE and no
-     *  semantic value at the current source location. */
+       semantic value at the current source location. **/
 
-    private int currIndent = 0; // Variável utilizada para guardar o número de espaços de indentação contados no início da linha atual.
+    /*Variável utilizada para guardar o número de espaços de indentação contados no início da linha atual.*/
+    private int currIndent = 0;
   
     /* Para manter o registro dos níveis de indentação (número de espaços de cada bloco ativo), foi implementado uma pilha usando ArrayList
     com o topo sendo o nível atual. */
-    private ArrayList<Integer> stack = new ArrayList<Integer>(20); // Inicializa com capacidade 20.
+    private ArrayList<Integer> stack = new ArrayList<Integer>(20) /*Inicializa com capacidade 20.*/;
 
-    // Flag para controlar erros de indentação
+    /* Flag para controlar erros de indentação */
     private boolean indentErrorUnchecked = true;
 
     /** Retorna um símbolo terminal da categoria sintática TYPE sem
      * valor semântico, usando a localização atual do código fonte. */
     private Symbol symbol(int type) {
-        // Chama a outra versão de 'symbol' passando o texto reconhecido ('yytext()') como valor.
+        /* Chama a outra versão de 'symbol' passando o texto reconhecido ('yytext()') como valor.*/
         return symbol(type, yytext());
     }
 
@@ -70,21 +73,21 @@ import java.util.Iterator; // A biblioteca Iterator será usada para percorrer a
     }
 
     /** Remove e retorna o valor do topo da pilha de indentação.
-     * Usado ao finalizar um bloco (DEDENT). Retorna 0 se a pilha estiver vazia. */
+     * Usado ao finalizar um bloco (DEDENT). Retorna 0 se a pilha estiver vazia. **/
     private int pop(){
         if(stack.isEmpty()) return 0;
         return stack.remove(stack.size() - 1);
     }
 
     /** Adiciona um novo nível de indentação (`indent`) ao topo da pilha.
-     * Usado ao iniciar um novo bloco (INDENT). */
+     * Usado ao iniciar um novo bloco (INDENT). **/
     private void push(int indent){
         stack.add(indent);
     }
 
-    /** O método find faz a verificação de um nível de indentação específico ('indent') existe na pilha.
-     * Ele irá retornar true se encontrar, false caso não encontre.
-     * É necessário para validar se um DEDENT retorna a um nível anterior válido. */
+    /* O método find faz a verificação de um nível de indentação específico ('indent') existe na pilha.*/
+    /*  Ele irá retornar true se encontrar, false caso não encontre.*/
+    /*  É necessário para validar se um DEDENT retorna a um nível anterior válido. */
     private boolean find(int indent){
       // Caso especial: indentação 0 sempre é válida (nível base).
       if(indent == 0) return true;
@@ -103,7 +106,7 @@ import java.util.Iterator; // A biblioteca Iterator será usada para percorrer a
 
     /** Retorna um símbolo terminal da categoria sintática TYPE com um
      * valor semântico VALUE, incluindo informações precisas de localização
-     * (linha/coluna inicial e final) usando a symbolFactory. */
+     * (linha/coluna inicial e final) usando a symbolFactory. **/
     private Symbol symbol(int type, Object value) {
         return symbolFactory.newSymbol(
             ChocoPyTokens.terminalNames[type], // Nome textual do token (para debug).
@@ -273,7 +276,14 @@ Comments = #[^\r\n]*
 /* o ESTADO AFTER É USADO PARA CLASSIFICAR OS TOKENS ENCONTRADOS. 
 A FUNÇÃO SYMBOL() CONSTRÓI OBJETOS REPRESENTANDO OS ELEMENTOS LÉXICOS DO CÓDIGO.*/
 <AFTER>{
+ /* Delimiters. */
+   {LineBreak}                    { yybegin(YYINITIAL);
+                                    currIndent = 0;
+                                    indentErrorUnchecked = true;
+                                    return symbol(ChocoPyTokens.NEWLINE);}
 
+    ","                            { return symbol(ChocoPyTokens.COMMA); }
+    ":"                            { return symbol(ChocoPyTokens.COLON); }
  /* Boolean keywords */
   "None"                         { return symbol(ChocoPyTokens.NONE); }
   "True"                         { return symbol(ChocoPyTokens.BOOL, true); }
@@ -350,9 +360,9 @@ A FUNÇÃO SYMBOL() CONSTRÓI OBJETOS REPRESENTANDO OS ELEMENTOS LÉXICOS DO CÓ
                                     str_column = yycolumn + 1 /* Registra a coluna inicial */;
                                     currentString = "" /* Inicializa a currentString como vazio e irá acumular o conteúdo da STRING sendo lida */; }
 
-    /*Identifiers*/
-    /* PADRÃO {Indentifiers} Feito para indentificadores válidos */
-    {Identifiers}                  { return symbol(ChocoPyTokens.ID /* Retorna um TOKEN do tipo ID */,
+ /*Identifiers*/
+      /* PADRÃO {Indentifiers} Feito para indentificadores válidos */
+   {Identifiers}                  { return symbol(ChocoPyTokens.ID /* Retorna um TOKEN do tipo ID */,
                                     yytext()) /* Retorna o próprio identificador como valor do TOKEN*/ ; }
 }
 
