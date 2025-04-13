@@ -116,14 +116,49 @@ import java.util.Iterator; // A biblioteca Iterator será usada para percorrer a
     }
 %}
 
-%%
 
 // --- Regras Léxicas ---
 
-<YYINITIAL>{
-  {LineBreak} { currIndent = 0; }
-  {Comments}  {} 
+/* Macros (regexes used in rules below) */
 
+    /* ----Já definido--- */
+    /* 1. WhiteSpace */
+    /* Padrão: [ t] Representa os espaços e tabulações */
+WhiteSpace = [ \t]
+    /* 2. LineBreak */
+    /* Padrão: r|n|rn Representa vários formatos de quebra de linha, incluindo Unix (n), Windows (rn) e Mac clássico (r). */
+LineBreak  = \r|\n|\r\n
+    /* 3. IntegerLiteral */
+    /* Padrão: 0|[1-9][0-9]* Representa inicialiar com 0 ou inteiros começando com um dígito diferente de zero seguido por dígitos. Vários zeros à esquerda não são permitidos. */
+IntegerLiteral = 0 | [1-9][0-9]*
+
+/* ----Novo--- */
+    /* 4.Identifiers */
+    /* Um identificador começa com um sublinhado (_) ou qualquer letra (a-z, A-Z), seguido por zero ou mais sublinhados, letras ou dígitos (0-9). */
+Identifiers = (_|[a-z]|[A-Z])(_|[a-z]|[A-Z]|[0-9])*
+    /* 5. StringLiteral */
+    /* Padrão: ([^"]|( ")|(t)|(r)|(n)|())+ Strings entre aspas, permite caracteres de escape, como ", , n, r ou t. */
+StringLiteral = ([^\"\\]|(\\\")|(\\t)|(\\r)|(\\n)|(\\\\))+
+    /* 6. Comments */
+    /* Padrão: #[^]* São os comentários que começam com #, e vai até o final da linha. */
+Comments = #[^\r\n]*
+/* ---FIM--- */
+
+%%
+
+<YYINITIAL>{
+
+  {Comments}  {}
+
+ /* Delimiters. */
+  {LineBreak}                 { currIndent = 0; return symbol(ChocoPyTokens.NEWLINE); }
+
+  /* Literals. */
+  {IntegerLiteral}            { return symbol(ChocoPyTokens.NUMBER,
+                                                 Integer.parseInt(yytext())); }
+
+  /* Operators. */
+  "+"                         { return symbol(ChocoPyTokens.PLUS, yytext()); }
 
   // Reconhece o PRIMEIRO caractere que NÃO é espaço, tabulação, quebra de linha ou início de comentário.
   // Este é o ponto onde a indentação da linha é finalizada e comparada com a pilha.
@@ -201,60 +236,15 @@ import java.util.Iterator; // A biblioteca Iterator será usada para percorrer a
       }
   }
 
-   // Reconhece espaços em branco (espaços ou tabs) no início da linha (estado YYINITIAL).
-  {WhiteSpace} { 
-      // Se o caractere de espaço em branco for uma tabulação:
-      if(yytext() == "\t")
-        currIndent += 8; // Assumindo que uma tabulação equivale a 8 espaços.
-      else 
-        currIndent ++; // Caso seja apenas um espaço simples, incrementa o contador de indentação em 1.
-  }
-}
-
-/* Macros (regexes used in rules below) */
-
-    /* ----Já definido--- */
-    /* 1. WhiteSpace */
-    /* Padrão: [ t] Representa os espaços e tabulações */
-WhiteSpace = [ \t]
-    /* 2. LineBreak */
-    /* Padrão: r|n|rn Representa vários formatos de quebra de linha, incluindo Unix (n), Windows (rn) e Mac clássico (r). */
-LineBreak  = \r|\n|\r\n
-    /* 3. IntegerLiteral */
-    /* Padrão: 0|[1-9][0-9]* Representa inicialiar com 0 ou inteiros começando com um dígito diferente de zero seguido por dígitos. Vários zeros à esquerda não são permitidos. */
-IntegerLiteral = 0 | [1-9][0-9]*
-
-/* ----Novo--- */
-    /* 4.Identifiers */
-    /* Um identificador começa com um sublinhado (_) ou qualquer letra (a-z, A-Z), seguido por zero ou mais sublinhados, letras ou dígitos (0-9). */
-Identifiers = (_|[a-z]|[A-Z])(_|[a-z]|[A-Z]|[0-9])*
-    /* 5. StringLiteral */
-    /* Padrão: ([^"]|( ")|(t)|(r)|(n)|())+ Strings entre aspas, permite caracteres de escape, como ", , n, r ou t. */
-StringLiteral = ([^\"\\]|(\\\")|(\\t)|(\\r)|(\\n)|(\\\\))+
-    /* 6. Comments */
-    /* Padrão: #[^]* São os comentários que começam com #, e vai até o final da linha. */
-Comments = #[^\r\n]*
-/*---FIM---*/
-
-%%
-
-
-<YYINITIAL> {
-
-  /* Delimiters. */
-  {LineBreak}                 { return symbol(ChocoPyTokens.NEWLINE); }
-
-  /* Literals. */
-  {IntegerLiteral}            { return symbol(ChocoPyTokens.NUMBER,
-                                                 Integer.parseInt(yytext())); }
-
-  /* Operators. */
-  "+"                         { return symbol(ChocoPyTokens.PLUS, yytext()); }
-
   /* Whitespace. */
-  {WhiteSpace}                { /* ignore */ }
-  
-  /*yybegin(AFTER);*/
+     // Reconhece espaços em branco (espaços ou tabs) no início da linha (estado YYINITIAL).
+    {WhiteSpace} {
+        // Se o caractere de espaço em branco for uma tabulação:
+        if(yytext() == "\t")
+          currIndent += 8; // Assumindo que uma tabulação equivale a 8 espaços.
+        else
+          currIndent ++; // Caso seja apenas um espaço simples, incrementa o contador de indentação em 1.
+    }
 }
 
 <STRING> {
@@ -349,6 +339,21 @@ A FUNÇÃO SYMBOL() CONSTRÓI OBJETOS REPRESENTANDO OS ELEMENTOS LÉXICOS DO CÓ
 
  /* Comment. */
    {Comments}                     { /* ignore */ }
+
+ /* Literals. */
+      /* PADRÃO {IntegerLiteral}:  Quando um literal inteiro é reconhecido DEVE 2 COISAS: */
+   {IntegerLiteral}               { return symbol(ChocoPyTokens.NUMBER /* Retorna o TOKEN do tipo NUMBER*/,
+                                    Integer.parseInt(yytext())) /* Analisa como Inteiro a cadeia proveniente de uma String*/; }
+      /* Quando uma aspa dupla aparecer, é o ínicio de uma nova cadeia de caracteres */
+   "\""                           { yybegin(STRING) /*chama o estado STRING*/;
+                                    str_line = yyline + 1 /* Registra a linha inicial*/;
+                                    str_column = yycolumn + 1 /* Registra a coluna inicial */;
+                                    currentString = "" /* Inicializa a currentString como vazio e irá acumular o conteúdo da STRING sendo lida */; }
+
+    /*Identifiers*/
+    /* PADRÃO {Indentifiers} Feito para indentificadores válidos */
+    {Identifiers}                  { return symbol(ChocoPyTokens.ID /* Retorna um TOKEN do tipo ID */,
+                                    yytext()) /* Retorna o próprio identificador como valor do TOKEN*/ ; }
 }
 
 <<EOF>>                       { return symbol(ChocoPyTokens.EOF); }
