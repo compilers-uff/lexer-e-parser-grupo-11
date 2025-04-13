@@ -1,9 +1,7 @@
 package chocopy.pa1;
 import java_cup.runtime.*;
-/* A biblioteca ArrayList será utilizada para realizar a pilha de indentação.*/
-import java.util.ArrayList;
-/* A biblioteca Iterator será usada para percorrer a pilha (usado em 'find').*/
-import java.util.Iterator;
+import java.util.ArrayList; // A bibllioteca ArrayList será utilizada para realizar a pilha de indentação.
+import java.util.Iterator; // A biblioteca Iterator será usada para percorrer a pilha (usado em 'find').
 
 %%
 
@@ -32,34 +30,27 @@ import java.util.Iterator;
      * was recognized, so that the parser can report errors accurately.
      * (It need not be modified for this project.) */
 
-    /* Vai inicializar uma cadeia de caracteres privada chamada currentString (String Atual).
+    /* Vai inicializar uma cadeia de caracteres privada chamada currString (String Atual).
     Vamos usar para armazenar o conteúdo de literais da cadeia de caracteres que estão sendo processados pelo léxico. */
-    private String currentString = "";
+    private String currString = "";
     
     /*Esses dois inteiros (str_line e str_column) representam a linha (line) e a coluna (column) em que um literal da cadeia
     de caracteres começa na entrada. Vai rastrear locais no código-fonte onde há erros ou depuração.*/
     private int str_line = 0, str_column = 0;
 
-    /** Producer of token-related values for the parser. **/
-    final ComplexSymbolFactory symbolFactory = new ComplexSymbolFactory();
-
-    /** Return a terminal symbol of syntactic category TYPE and no
-       semantic value at the current source location. **/
-
-    /*Variável utilizada para guardar o número de espaços de indentação contados no início da linha atual.*/
-    private int currIndent = 0;
+    private int currIndent = 0; // Variável utilizada para guardar o número de espaços de indentação contados no início da linha atual.
   
     /* Para manter o registro dos níveis de indentação (número de espaços de cada bloco ativo), foi implementado uma pilha usando ArrayList
     com o topo sendo o nível atual. */
-    private ArrayList<Integer> stack = new ArrayList<Integer>(20) /*Inicializa com capacidade 20.*/;
+    private ArrayList<Integer> stack = new ArrayList<Integer>(20); // Inicializa com capacidade 20.
 
-    /* Flag para controlar erros de indentação */
+    // Flag para controlar erros de indentação
     private boolean indentErrorUnchecked = true;
 
     /** Retorna um símbolo terminal da categoria sintática TYPE sem
      * valor semântico, usando a localização atual do código fonte. */
     private Symbol symbol(int type) {
-        /* Chama a outra versão de 'symbol' passando o texto reconhecido ('yytext()') como valor.*/
+        // Chama a outra versão de 'symbol' passando o texto reconhecido ('yytext()') como valor.
         return symbol(type, yytext());
     }
 
@@ -73,21 +64,21 @@ import java.util.Iterator;
     }
 
     /** Remove e retorna o valor do topo da pilha de indentação.
-     * Usado ao finalizar um bloco (DEDENT). Retorna 0 se a pilha estiver vazia. **/
+     * Usado ao finalizar um bloco (DEDENT). Retorna 0 se a pilha estiver vazia. */
     private int pop(){
         if(stack.isEmpty()) return 0;
         return stack.remove(stack.size() - 1);
     }
 
     /** Adiciona um novo nível de indentação (`indent`) ao topo da pilha.
-     * Usado ao iniciar um novo bloco (INDENT). **/
+     * Usado ao iniciar um novo bloco (INDENT). */
     private void push(int indent){
         stack.add(indent);
     }
 
-    /* O método find faz a verificação de um nível de indentação específico ('indent') existe na pilha.*/
-    /*  Ele irá retornar true se encontrar, false caso não encontre.*/
-    /*  É necessário para validar se um DEDENT retorna a um nível anterior válido. */
+    /** O método find faz a verificação de um nível de indentação específico ('indent') existe na pilha.
+     * Ele irá retornar true se encontrar, false caso não encontre.
+     * É necessário para validar se um DEDENT retorna a um nível anterior válido. */
     private boolean find(int indent){
       // Caso especial: indentação 0 sempre é válida (nível base).
       if(indent == 0) return true;
@@ -106,7 +97,7 @@ import java.util.Iterator;
 
     /** Retorna um símbolo terminal da categoria sintática TYPE com um
      * valor semântico VALUE, incluindo informações precisas de localização
-     * (linha/coluna inicial e final) usando a symbolFactory. **/
+     * (linha/coluna inicial e final) usando a symbolFactory. */
     private Symbol symbol(int type, Object value) {
         return symbolFactory.newSymbol(
             ChocoPyTokens.terminalNames[type], // Nome textual do token (para debug).
@@ -119,7 +110,6 @@ import java.util.Iterator;
     }
 %}
 
-
 // --- Regras Léxicas ---
 
 /* Macros (regexes used in rules below) */
@@ -127,41 +117,34 @@ import java.util.Iterator;
     /* ----Já definido--- */
     /* 1. WhiteSpace */
     /* Padrão: [ t] Representa os espaços e tabulações */
-WhiteSpace = [ \t]
+    WhiteSpace = [ \t]
     /* 2. LineBreak */
     /* Padrão: r|n|rn Representa vários formatos de quebra de linha, incluindo Unix (n), Windows (rn) e Mac clássico (r). */
-LineBreak  = \r|\n|\r\n
+    LineBreak  = \r|\n|\r\n
     /* 3. IntegerLiteral */
     /* Padrão: 0|[1-9][0-9]* Representa inicialiar com 0 ou inteiros começando com um dígito diferente de zero seguido por dígitos. Vários zeros à esquerda não são permitidos. */
-IntegerLiteral = 0 | [1-9][0-9]*
+    IntegerLiteral = 0 | [1-9][0-9]*
 
-/* ----Novo--- */
+    /* ----Novo--- */
     /* 4.Identifiers */
     /* Um identificador começa com um sublinhado (_) ou qualquer letra (a-z, A-Z), seguido por zero ou mais sublinhados, letras ou dígitos (0-9). */
-Identifiers = (_|[a-z]|[A-Z])(_|[a-z]|[A-Z]|[0-9])*
+    Identifiers = (_|[a-z]|[A-Z])(_|[a-z]|[A-Z]|[0-9])*
     /* 5. StringLiteral */
     /* Padrão: ([^"]|( ")|(t)|(r)|(n)|())+ Strings entre aspas, permite caracteres de escape, como ", , n, r ou t. */
-StringLiteral = ([^\"\\]|(\\\")|(\\t)|(\\r)|(\\n)|(\\\\))+
+    StringLiteral = ([^\"\\]|(\\\")|(\\t)|(\\r)|(\\n)|(\\\\))+
     /* 6. Comments */
     /* Padrão: #[^]* São os comentários que começam com #, e vai até o final da linha. */
-Comments = #[^\r\n]*
+    Comments = #[^\r\n]*
+    
 /* ---FIM--- */
+
 
 %%
 
 <YYINITIAL>{
+  {LineBreak} { currIndent = 0; }
+  {Comments}  {} 
 
-  {Comments}  {}
-
- /* Delimiters. */
-  {LineBreak}                 { currIndent = 0; return symbol(ChocoPyTokens.NEWLINE); }
-
-  /* Literals. */
-  {IntegerLiteral}            { return symbol(ChocoPyTokens.NUMBER,
-                                                 Integer.parseInt(yytext())); }
-
-  /* Operators. */
-  "+"                         { return symbol(ChocoPyTokens.PLUS, yytext()); }
 
   // Reconhece o PRIMEIRO caractere que NÃO é espaço, tabulação, quebra de linha ou início de comentário.
   // Este é o ponto onde a indentação da linha é finalizada e comparada com a pilha.
@@ -239,22 +222,21 @@ Comments = #[^\r\n]*
       }
   }
 
-  /* Whitespace. */
-     // Reconhece espaços em branco (espaços ou tabs) no início da linha (estado YYINITIAL).
-    {WhiteSpace} {
-        // Se o caractere de espaço em branco for uma tabulação:
-        if(yytext() == "\t")
-          currIndent += 8; // Assumindo que uma tabulação equivale a 8 espaços.
-        else
-          currIndent ++; // Caso seja apenas um espaço simples, incrementa o contador de indentação em 1.
-    }
+   // Reconhece espaços em branco (espaços ou tabs) no início da linha (estado YYINITIAL).
+  {WhiteSpace} { 
+      // Se o caractere de espaço em branco for uma tabulação:
+      if(yytext() == "\t")
+        currIndent += 8; // Assumindo que uma tabulação equivale a 8 espaços.
+      else 
+        currIndent ++; // Caso seja apenas um espaço simples, incrementa o contador de indentação em 1.
+  }
 }
 
 <STRING> {
     /*Esse trecho indica que quando um caracter do StringLiteral é reconhecido,
-    o texto correspondente por yytext é adicionado à variável currentString.
-    A variável currentString é usada para armazenar o conteúdo completo da string que está sendo processada */
-    {StringLiteral}              { currentString += yytext(); }
+    o texto correspondente por yytext é adicionado à variável currString.
+    A variável currString é usada para armazenar o conteúdo completo da string que está sendo processada */
+    {StringLiteral}              { currString += yytext(); }
 
 
     "\""                         { yybegin(AFTER); /*altera o estado do lexer para AFTER, passando para a próxima tarefa.*/
@@ -265,7 +247,7 @@ Comments = #[^\r\n]*
                                         Pode ser um valor inteiro ou enumeração que representa o token no analisador léxico */,
                                    new ComplexSymbolFactory.Location(str_line, str_column) /*Essa linha representa a criação de um objeto de localização usando a classe ComplexSymbolFactory */,
                                    new ComplexSymbolFactory.Location(yyline + 1,yycolumn + yylength()) /*Este trecho de código está criando um objeto de localização para representar a posição de um token no código-fonte. */,
-                                   currentString) /* Enquanto o lexer processa, ele acumula o conteúdo */; }
+                                   currString) /* Enquanto o lexer processa, ele acumula o conteúdo */; }
 
 
     /* Tratar o caractere \ como uma continuação de linha. */
@@ -276,14 +258,20 @@ Comments = #[^\r\n]*
 /* o ESTADO AFTER É USADO PARA CLASSIFICAR OS TOKENS ENCONTRADOS. 
 A FUNÇÃO SYMBOL() CONSTRÓI OBJETOS REPRESENTANDO OS ELEMENTOS LÉXICOS DO CÓDIGO.*/
 <AFTER>{
+  /* Literals. */
+   {IntegerLiteral}               { return symbol(ChocoPyTokens.NUMBER, Integer.parseInt(yytext())); }
+   "\""                           { yybegin(STRING); str_line = yyline + 1; str_column = yycolumn + 1; currString = ""; }
+
  /* Delimiters. */
-   {LineBreak}                    { yybegin(YYINITIAL);
+  {LineBreak}                    { yybegin(YYINITIAL);
                                     currIndent = 0;
                                     indentErrorUnchecked = true;
                                     return symbol(ChocoPyTokens.NEWLINE);}
 
-    ","                            { return symbol(ChocoPyTokens.COMMA); }
-    ":"                            { return symbol(ChocoPyTokens.COLON); }
+  ","                            { return symbol(ChocoPyTokens.COMMA); }
+  ":"                            { return symbol(ChocoPyTokens.COLON); }
+
+
  /* Boolean keywords */
   "None"                         { return symbol(ChocoPyTokens.NONE); }
   "True"                         { return symbol(ChocoPyTokens.BOOL, true); }
@@ -344,29 +332,19 @@ A FUNÇÃO SYMBOL() CONSTRÓI OBJETOS REPRESENTANDO OS ELEMENTOS LÉXICOS DO CÓ
   "]"                            { return symbol(ChocoPyTokens.RBR); }
   "."                            { return symbol(ChocoPyTokens.DOT); }
 
+  /*Identifiers*/
+      /* PADRÃO {Indentifiers} Feito para indentificadores válidos */
+   {Identifiers}                  { return symbol(ChocoPyTokens.ID /* Retorna um TOKEN do tipo ID */,
+                                    yytext()) /* Retorna o próprio identificador como valor do TOKEN*/ ; }
+
  /* Whitespace. */
    {WhiteSpace}                   { /* ignore */ }
 
  /* Comment. */
    {Comments}                     { /* ignore */ }
-
- /* Literals. */
-      /* PADRÃO {IntegerLiteral}:  Quando um literal inteiro é reconhecido DEVE 2 COISAS: */
-   {IntegerLiteral}               { return symbol(ChocoPyTokens.NUMBER /* Retorna o TOKEN do tipo NUMBER*/,
-                                    Integer.parseInt(yytext())) /* Analisa como Inteiro a cadeia proveniente de uma String*/; }
-      /* Quando uma aspa dupla aparecer, é o ínicio de uma nova cadeia de caracteres */
-   "\""                           { yybegin(STRING) /*chama o estado STRING*/;
-                                    str_line = yyline + 1 /* Registra a linha inicial*/;
-                                    str_column = yycolumn + 1 /* Registra a coluna inicial */;
-                                    currentString = "" /* Inicializa a currentString como vazio e irá acumular o conteúdo da STRING sendo lida */; }
-
- /*Identifiers*/
-      /* PADRÃO {Indentifiers} Feito para indentificadores válidos */
-   {Identifiers}                  { return symbol(ChocoPyTokens.ID /* Retorna um TOKEN do tipo ID */,
-                                    yytext()) /* Retorna o próprio identificador como valor do TOKEN*/ ; }
 }
 
-<<EOF>>                       { return symbol(ChocoPyTokens.EOF); }
+<<EOF>>                       { if(!stack.isEmpty()){ return symbol(ChocoPyTokens.DEDENT, pop());} return symbol(ChocoPyTokens.EOF); }
 
 /* Error fallback. */
 [^]                           { return symbol(ChocoPyTokens.UNRECOGNIZED); }
