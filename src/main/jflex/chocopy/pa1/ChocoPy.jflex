@@ -30,19 +30,13 @@ import java.util.Iterator; // A biblioteca Iterator será usada para percorrer a
      * was recognized, so that the parser can report errors accurately.
      * (It need not be modified for this project.) */
 
-    /* Vai inicializar uma cadeia de caracteres privada chamada currentString (String Atual).
+    /* Vai inicializar uma cadeia de caracteres privada chamada currString (String Atual).
     Vamos usar para armazenar o conteúdo de literais da cadeia de caracteres que estão sendo processados pelo léxico. */
-    private String currentString = "";
+    private String currString = "";
     
     /*Esses dois inteiros (str_line e str_column) representam a linha (line) e a coluna (column) em que um literal da cadeia
-    de caracteres começa na entrada. Vai rastrear locais no código-fonte onde há erros ou depuração.
-    private int str_line = 0, str_column = 0; //Ponto inicial de uma string.
-
-    /** Producer of token-related values for the parser. */
-    final ComplexSymbolFactory symbolFactory = new ComplexSymbolFactory();
-
-    /** Return a terminal symbol of syntactic category TYPE and no
-     *  semantic value at the current source location. */
+    de caracteres começa na entrada. Vai rastrear locais no código-fonte onde há erros ou depuração.*/
+    private int str_line = 0, str_column = 0;
 
     private int currIndent = 0; // Variável utilizada para guardar o número de espaços de indentação contados no início da linha atual.
   
@@ -116,9 +110,36 @@ import java.util.Iterator; // A biblioteca Iterator será usada para percorrer a
     }
 %}
 
-%%
-
 // --- Regras Léxicas ---
+
+/* Macros (regexes used in rules below) */
+
+    /* ----Já definido--- */
+    /* 1. WhiteSpace */
+    /* Padrão: [ t] Representa os espaços e tabulações */
+    WhiteSpace = [ \t]
+    /* 2. LineBreak */
+    /* Padrão: r|n|rn Representa vários formatos de quebra de linha, incluindo Unix (n), Windows (rn) e Mac clássico (r). */
+    LineBreak  = \r|\n|\r\n
+    /* 3. IntegerLiteral */
+    /* Padrão: 0|[1-9][0-9]* Representa inicialiar com 0 ou inteiros começando com um dígito diferente de zero seguido por dígitos. Vários zeros à esquerda não são permitidos. */
+    IntegerLiteral = 0 | [1-9][0-9]*
+
+    /* ----Novo--- */
+    /* 4.Identifiers */
+    /* Um identificador começa com um sublinhado (_) ou qualquer letra (a-z, A-Z), seguido por zero ou mais sublinhados, letras ou dígitos (0-9). */
+    Identifiers = (_|[a-z]|[A-Z])(_|[a-z]|[A-Z]|[0-9])*
+    /* 5. StringLiteral */
+    /* Padrão: ([^"]|( ")|(t)|(r)|(n)|())+ Strings entre aspas, permite caracteres de escape, como ", , n, r ou t. */
+    StringLiteral = ([^\"\\]|(\\\")|(\\t)|(\\r)|(\\n)|(\\\\))+
+    /* 6. Comments */
+    /* Padrão: #[^]* São os comentários que começam com #, e vai até o final da linha. */
+    Comments = #[^\r\n]*
+    
+/* ---FIM--- */
+
+
+%%
 
 <YYINITIAL>{
   {LineBreak} { currIndent = 0; }
@@ -211,57 +232,11 @@ import java.util.Iterator; // A biblioteca Iterator será usada para percorrer a
   }
 }
 
-/* Macros (regexes used in rules below) */
-
-    /* ----Já definido--- */
-    /* 1. WhiteSpace */
-    /* Padrão: [ t] Representa os espaços e tabulações */
-WhiteSpace = [ \t]
-    /* 2. LineBreak */
-    /* Padrão: r|n|rn Representa vários formatos de quebra de linha, incluindo Unix (n), Windows (rn) e Mac clássico (r). */
-LineBreak  = \r|\n|\r\n
-    /* 3. IntegerLiteral */
-    /* Padrão: 0|[1-9][0-9]* Representa inicialiar com 0 ou inteiros começando com um dígito diferente de zero seguido por dígitos. Vários zeros à esquerda não são permitidos. */
-IntegerLiteral = 0 | [1-9][0-9]*
-
-/* ----Novo--- */
-    /* 4.Identifiers */
-    /* Um identificador começa com um sublinhado (_) ou qualquer letra (a-z, A-Z), seguido por zero ou mais sublinhados, letras ou dígitos (0-9). */
-Identifiers = (_|[a-z]|[A-Z])(_|[a-z]|[A-Z]|[0-9])*
-    /* 5. StringLiteral */
-    /* Padrão: ([^"]|( ")|(t)|(r)|(n)|())+ Strings entre aspas, permite caracteres de escape, como ", , n, r ou t. */
-StringLiteral = ([^\"\\]|(\\\")|(\\t)|(\\r)|(\\n)|(\\\\))+
-    /* 6. Comments */
-    /* Padrão: #[^]* São os comentários que começam com #, e vai até o final da linha. */
-Comments = #[^\r\n]*
-/*---FIM---*/
-
-%%
-
-
-<YYINITIAL> {
-
-  /* Delimiters. */
-  {LineBreak}                 { return symbol(ChocoPyTokens.NEWLINE); }
-
-  /* Literals. */
-  {IntegerLiteral}            { return symbol(ChocoPyTokens.NUMBER,
-                                                 Integer.parseInt(yytext())); }
-
-  /* Operators. */
-  "+"                         { return symbol(ChocoPyTokens.PLUS, yytext()); }
-
-  /* Whitespace. */
-  {WhiteSpace}                { /* ignore */ }
-  
-  /*yybegin(AFTER);*/
-}
-
 <STRING> {
     /*Esse trecho indica que quando um caracter do StringLiteral é reconhecido,
-    o texto correspondente por yytext é adicionado à variável currentString.
-    A variável currentString é usada para armazenar o conteúdo completo da string que está sendo processada */
-    {StringLiteral}              { currentString += yytext(); }
+    o texto correspondente por yytext é adicionado à variável currString.
+    A variável currString é usada para armazenar o conteúdo completo da string que está sendo processada */
+    {StringLiteral}              { currString += yytext(); }
 
 
     "\""                         { yybegin(AFTER); /*altera o estado do lexer para AFTER, passando para a próxima tarefa.*/
@@ -272,7 +247,7 @@ Comments = #[^\r\n]*
                                         Pode ser um valor inteiro ou enumeração que representa o token no analisador léxico */,
                                    new ComplexSymbolFactory.Location(str_line, str_column) /*Essa linha representa a criação de um objeto de localização usando a classe ComplexSymbolFactory */,
                                    new ComplexSymbolFactory.Location(yyline + 1,yycolumn + yylength()) /*Este trecho de código está criando um objeto de localização para representar a posição de um token no código-fonte. */,
-                                   currentString) /* Enquanto o lexer processa, ele acumula o conteúdo */; }
+                                   currString) /* Enquanto o lexer processa, ele acumula o conteúdo */; }
 
 
     /* Tratar o caractere \ como uma continuação de linha. */
@@ -283,6 +258,19 @@ Comments = #[^\r\n]*
 /* o ESTADO AFTER É USADO PARA CLASSIFICAR OS TOKENS ENCONTRADOS. 
 A FUNÇÃO SYMBOL() CONSTRÓI OBJETOS REPRESENTANDO OS ELEMENTOS LÉXICOS DO CÓDIGO.*/
 <AFTER>{
+  /* Literals. */
+   {IntegerLiteral}               { return symbol(ChocoPyTokens.NUMBER, Integer.parseInt(yytext())); }
+   "\""                           { yybegin(STRING); str_line = yyline + 1; str_column = yycolumn + 1; currString = ""; }
+
+ /* Delimiters. */
+  {LineBreak}                    { yybegin(YYINITIAL);
+                                    currIndent = 0;
+                                    indentErrorUnchecked = true;
+                                    return symbol(ChocoPyTokens.NEWLINE);}
+
+  ","                            { return symbol(ChocoPyTokens.COMMA); }
+  ":"                            { return symbol(ChocoPyTokens.COLON); }
+
 
  /* Boolean keywords */
   "None"                         { return symbol(ChocoPyTokens.NONE); }
@@ -344,6 +332,11 @@ A FUNÇÃO SYMBOL() CONSTRÓI OBJETOS REPRESENTANDO OS ELEMENTOS LÉXICOS DO CÓ
   "]"                            { return symbol(ChocoPyTokens.RBR); }
   "."                            { return symbol(ChocoPyTokens.DOT); }
 
+  /*Identifiers*/
+      /* PADRÃO {Indentifiers} Feito para indentificadores válidos */
+   {Identifiers}                  { return symbol(ChocoPyTokens.ID /* Retorna um TOKEN do tipo ID */,
+                                    yytext()) /* Retorna o próprio identificador como valor do TOKEN*/ ; }
+
  /* Whitespace. */
    {WhiteSpace}                   { /* ignore */ }
 
@@ -351,7 +344,7 @@ A FUNÇÃO SYMBOL() CONSTRÓI OBJETOS REPRESENTANDO OS ELEMENTOS LÉXICOS DO CÓ
    {Comments}                     { /* ignore */ }
 }
 
-<<EOF>>                       { return symbol(ChocoPyTokens.EOF); }
+<<EOF>>                       { if(!stack.isEmpty()){ return symbol(ChocoPyTokens.DEDENT, pop());} return symbol(ChocoPyTokens.EOF); }
 
 /* Error fallback. */
 [^]                           { return symbol(ChocoPyTokens.UNRECOGNIZED); }
