@@ -143,8 +143,74 @@ action code {:
  * in actions ( {: ... :} ).
  */
 terminal NEWLINE;
+
 terminal String PLUS; 
-terminal Integer NUMBER; 
+terminal variable MUL;
+terminal variable DIV;
+terminal variable MOD;
+terminal variable MINUS;
+
+terminal variable LBR;
+terminal variable RBR;
+terminal variable RPAR;
+terminal variable LPAR;
+
+terminal variable GEQ;
+terminal variable NEQ;
+terminal variable LEQ;
+terminal variable IS;
+terminal variable EQUAL;
+terminal variable LT;
+
+terminal String STRING;
+terminal Integer NUMBER;
+terminal Boolean BOOL;
+terminal variable NONE; 
+
+
+terminal variable FOR;
+terminal variable IN;
+terminal variable IF;
+terminal variable ELSE;
+terminal variable ELIF;
+terminal variable WHILE;
+
+terminal variable AND;
+terminal variable OR;
+
+terminal variable NOT;
+
+terminal variable WITH;
+terminal variable ARROW;
+terminal variable CONTINUE;
+terminal variable FINALLY;
+terminal variable GLOBAL;
+terminal variable IMPORT;
+terminal variable LAMBDA;
+terminal variable ASSERT;
+terminal variable EXCEPT;
+terminal variable RETURN;
+terminal variable DEDENT;
+terminal variable INDENT;
+terminal variable YIELD;
+terminal variable BREAK;
+terminal variable COMMA;
+terminal variable COLON;
+terminal variable ID;
+terminal variable DEL;
+terminal variable ASSIGN;
+terminal variable NONLOCAL;
+terminal variable GT;
+terminal variable AWAIT;
+terminal variable CLASS;
+terminal variable RAISE;
+terminal variable PASS;
+terminal variable FROM;
+terminal variable DEF;
+terminal variable TRY;
+terminal variable DOT;
+terminal variable AS;
+
 /* Returned by the lexer for erroneous tokens.  Since it does not appear in
  * the grammar, it indicates a syntax error. */
 terminal UNRECOGNIZED;   
@@ -203,6 +269,7 @@ expr_stmt ::= expr:e    {: RESULT = new ExprStmt(exleft, exright, e); :}
 
 expr ::= binary_expr:e  {: RESULT = e; :}
        | NUMBER:n       {: RESULT = new IntegerLiteral(nxleft, nxright, n); :}
+       | BOOL:b       {: RESULT = new BooleanLiteral(bxleft, bxright, b); :}
        ;
 
 
