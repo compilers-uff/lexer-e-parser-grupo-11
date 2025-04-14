@@ -148,7 +148,7 @@ terminal String PLUS;
 terminal variable MUL;
 terminal variable DIV;
 terminal variable MOD;
-terminal variable MINUS;
+terminal String MINUS;
 
 terminal variable LBR;
 terminal variable RBR;
@@ -224,7 +224,7 @@ non terminal Program           program;
 non terminal List<Declaration> program_head;
 non terminal List<Stmt>        stmt_list, opt_stmt_list;
 non terminal Stmt              stmt, expr_stmt;
-non terminal Expr              expr, binary_expr;
+non terminal Expr              expr, binary_expr, unary_expr;
 
 /* Precedences (lowest to highest) for resolving what would otherwise be
  * ambiguities in the form of shift/reduce conflicts.. */
@@ -268,6 +268,7 @@ expr_stmt ::= expr:e    {: RESULT = new ExprStmt(exleft, exright, e); :}
             ;
 
 expr ::= binary_expr:e  {: RESULT = e; :}
+       | unary_expr:e  {: RESULT = e; :}
        | NUMBER:n       {: RESULT = new IntegerLiteral(nxleft, nxright, n); :}
        | BOOL:b       {: RESULT = new BooleanLiteral(bxleft, bxright, b); :}
        | NONE:no      {: RESULT = new NoneLiteral(noxleft, noxright); :}
@@ -280,4 +281,9 @@ expr ::= binary_expr:e  {: RESULT = e; :}
 binary_expr ::= expr:e1 PLUS:op expr:e2
                         {: RESULT = new BinaryExpr(e1xleft, e2xright,
                                                    e1, op, e2); :}
+              ;
+
+unary_expr ::= MINUS:op expr:e
+                        {: RESULT = new UnaryExpr(exleft, exright,
+                                                   op, e); :}
               ;
