@@ -23,7 +23,7 @@ Caso queira observar a saída do parser quando rodar um programa específico, ro
 
 ## Grupo de Trabalho
 
-Membro 1: Guilherme França Moreira
+Membro 1: Guilherme França Moreira, 12 horas e meia alocadas  para o desenvolvimento do projeto
 
 Membro 2: Luiz Gustavo Pereira
 
