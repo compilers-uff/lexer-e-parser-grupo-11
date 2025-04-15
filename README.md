@@ -43,7 +43,11 @@ um ArrayList no arquivo ChocoPy.jflex, para controlar os níveis de indentação
     
     R: ```A solução do item 1 está relacionado diretamente com a especificação da estrutura de linhas na seção 3.1.5 sobre indentação. Tanto nossa solução quanto a seção do manual de referência enfatizam o uso de uma pilha para rastrear os níveis de indentação. No início de cada linha lógica, a indentação atual é comparada com o topo desta pilha. Se a indentação aumenta, um token INDENT é gerado e o novo nível é adicionado à pilha. Se a indentação diminui, tokens DEDENT são emitidos para cada nível maior na pilha até que o nível atual seja alcançado. A inicialização da pilha com um zero e a lógica de níveis estritamente crescentes também estão implicitamente presentes na lógica descrita.
       Além da mecânica de INDENT e DEDENT, ele também se relaciona na questão da contagem da indentação inicial de cada linha lógica (relacionando-se com o início das linhas lógicas mencionadas na seção 3.1.2) e o tratamento do final do arquivo com a emissão dos DEDENTs pendentes (conforme especificado no final da seção 3.1.5).```
-3. Qual foi a característica mais difícil da linguagem (não incluindo identação) neste projeto? Por que foi um desafio? Mencione o nome do arquivo e o(s) número(s) da(s) linha(s) para a parte principal de a sua solução.
+
+<br>
+
+3. ***Qual foi a característica mais difícil da linguagem (não incluindo identação) neste projeto? Por que foi um desafio? Mencione o nome do arquivo e o(s) número(s) da(s) linha(s) para a parte principal de a sua solução.***
+   
    R: ```Pouco tempo para fazer um trabalho tão grande. 
 A falta de um HOW-TO GUIDE dado que a documentação do JFlex e CUP são fracas. 
 O JAVA CUP requer prévia experiência com o YACC.  ```
