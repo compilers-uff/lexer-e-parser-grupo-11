@@ -212,7 +212,7 @@ terminal String ID;
 terminal String DOT;
 
 
-terminal UNRECOGNIZED;
+terminal String UNRECOGNIZED;
 terminal String ARROW;
 terminal String GLOBAL;
 terminal String RETURN;
@@ -223,21 +223,6 @@ terminal String NONLOCAL;
 terminal String CLASS;
 terminal String PASS;
 terminal String DEF;
-terminal String AS;
-terminal String TRY;
-terminal String DEL;
-terminal String FROM;
-terminal String WITH;
-terminal String RAISE;
-terminal String AWAIT;
-terminal String BREAK; 
-terminal String YIELD;
-terminal String EXCEPT;
-terminal String ASSERT;
-terminal String LAMBDA;
-terminal String IMPORT;
-terminal String FINALLY;
-terminal String CONTINUE;
 
 /* Returned by the lexer for erroneous tokens.  Since it does not appear in
  * the grammar, it indicates a syntax error. */

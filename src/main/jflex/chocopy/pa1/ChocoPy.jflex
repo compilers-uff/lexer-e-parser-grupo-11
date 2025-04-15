@@ -290,21 +290,6 @@ A FUNÇÃO SYMBOL() CONSTRÓI OBJETOS REPRESENTANDO OS ELEMENTOS LÉXICOS DO CÓ
   "nonlocal"                     { return symbol(ChocoPyTokens.NONLOCAL); }
   "pass"                         { return symbol(ChocoPyTokens.PASS); }
   "return"                       { return symbol(ChocoPyTokens.RETURN); }
-  "assert"                       { return symbol(ChocoPyTokens.ASSERT); }
-  "await"                        { return symbol(ChocoPyTokens.AWAIT); }
-  "break"                        { return symbol(ChocoPyTokens.BREAK); }
-  "continue"                     { return symbol(ChocoPyTokens.CONTINUE); }
-  "del"                          { return symbol(ChocoPyTokens.DEL); }
-  "lambda"                       { return symbol(ChocoPyTokens.LAMBDA); }
-  "as"                           { return symbol(ChocoPyTokens.AS); }
-  "except"                       { return symbol(ChocoPyTokens.EXCEPT); }
-  "finally"                      { return symbol(ChocoPyTokens.FINALLY); }
-  "from"                         { return symbol(ChocoPyTokens.FROM); }
-  "import"                       { return symbol(ChocoPyTokens.IMPORT); }
-  "raise"                        { return symbol(ChocoPyTokens.RAISE); }
-  "try"                          { return symbol(ChocoPyTokens.TRY); }
-  "with"                         { return symbol(ChocoPyTokens.WITH); }
-  "yield"                        { return symbol(ChocoPyTokens.YIELD); }
 
 
   /* Operators. */
