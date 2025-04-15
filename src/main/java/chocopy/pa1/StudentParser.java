@@ -2,8 +2,6 @@ package chocopy.pa1;
 
 import java.io.StringReader;
 
-import chocopy.reference.ChocoPyLexer;
-import chocopy.reference.ChocoPyParser;
 import java_cup.runtime.ComplexSymbolFactory;
 
 import chocopy.common.astnodes.Program;
