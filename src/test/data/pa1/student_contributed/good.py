@@ -1,15 +1,9 @@
 1 + 2 + 3
 
-
-TRY
-y = 1 + 2 + 3
-FINNALY
-("Bloco 'finally' sempre será executado, y")
-
-if ( Y == 0 ):
-    X = 0
-    ELSE
-    Y = 1
+if (y == 0):
+    x = 0
+else:
+    y = 1
 
 while ( m < 10 ):
     m = m + 1
@@ -33,4 +27,3 @@ elif x == y:
     x = x + y
 else:
     x = y
-
