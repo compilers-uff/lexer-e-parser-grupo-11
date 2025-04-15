@@ -150,17 +150,20 @@ terminal String DIV;
 terminal String MOD;
 terminal String MINUS;
 
-terminal variable LBR;
-terminal variable RBR;
+terminal String LBR;
+terminal String RBR;
 terminal variable RPAR;
 terminal variable LPAR;
 
-terminal variable GEQ;
-terminal variable NEQ;
-terminal variable LEQ;
-terminal variable IS;
-terminal variable EQUAL;
-terminal variable LT;
+
+terminal String EQUAL;
+terminal String NEQ;
+terminal String LEQ;
+terminal String GEQ;
+terminal String LT;
+terminal String GT;
+terminal String IS;
+
 
 terminal String STRING;
 terminal Integer NUMBER;
@@ -196,11 +199,10 @@ terminal variable YIELD;
 terminal variable BREAK;
 terminal variable COMMA;
 terminal variable COLON;
-terminal variable ID;
+terminal String ID;
 terminal variable DEL;
 terminal variable ASSIGN;
 terminal variable NONLOCAL;
-terminal variable GT;
 terminal variable AWAIT;
 terminal variable CLASS;
 terminal variable RAISE;
@@ -208,7 +210,7 @@ terminal variable PASS;
 terminal variable FROM;
 terminal variable DEF;
 terminal variable TRY;
-terminal variable DOT;
+terminal String DOT;
 terminal variable AS;
 
 /* Returned by the lexer for erroneous tokens.  Since it does not appear in
@@ -225,7 +227,8 @@ non terminal Program           program;
 non terminal List<Declaration> program_head;
 non terminal List<Stmt>        stmt_list, opt_stmt_list;
 non terminal Stmt              stmt, expr_stmt;
-non terminal Expr              expr, binary_expr, unary_expr, num;
+non terminal Expr              expr, binary_expr, cexpr, member_expr, index_expr, target;
+non terminal Literal           literal;
 
 
 /* Precedences (lowest to highest) for resolving what would otherwise be
@@ -238,6 +241,13 @@ precedence left MINUS;
 
 precedence left AND;
 precedence left OR;
+
+precedence left DOT;
+precedence left RBR;
+precedence left LBR;
+
+precedence right IF;
+precedence right ELSE;
 
 
 /* The start symbol. */
@@ -274,41 +284,94 @@ stmt_list ::= stmt:s                 {: RESULT = single(s); :}
 stmt ::= expr_stmt:s NEWLINE {: RESULT = s; :}
               ;
 
+
 expr_stmt ::= expr:e    {: RESULT = new ExprStmt(exleft, exright, e); :}
             ;
 
-expr ::= binary_expr:e  {: RESULT = e; :}
-       | unary_expr:e  {: RESULT = e; :}
-       | NUMBER:n       {: RESULT = new IntegerLiteral(nxleft, nxright, n); :}
-       | BOOL:b       {: RESULT = new BooleanLiteral(bxleft, bxright, b); :}
-       | NONE:no      {: RESULT = new NoneLiteral(noxleft, noxright); :}
-       | STRING:s       {: RESULT = new StringLiteral(sxleft, sxright, s); :}
-       ;
+literal ::= NONE:no   {: RESULT = new NoneLiteral(noxleft, noxright); :}
+          | NUMBER:n       {: RESULT = new IntegerLiteral(nxleft, nxright, n); :}
+          | BOOL:b       {: RESULT = new BooleanLiteral(bxleft, bxright, b); :}
+          | STRING:s       {: RESULT = new StringLiteral(sxleft, sxright, s); :}/*IDSTRING*/
+          ;
 
-num ::=  NUMBER:n       {: RESULT = new IntegerLiteral(nxleft, nxright, n); :}
-      ;
-
-
-/* A binary expression, illustrating how to find the left and right
- * source position of a phrase. */
-binary_expr ::= num:e1 MUL:op num:e2
-                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
-                                                   e1, op, e2); :}
-              | num:e1 DIV:op num:e2
-                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
-                                                   e1, op, e2); :}
-              | num:e1 MOD:op num:e2
-                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
-                                                   e1, op, e2); :}
-              | num:e1 PLUS:op num:e2
-                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
-                                                   e1, op, e2); :}
-              | num:e1 MINUS:op num:e2
-                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
-                                                   e1, op, e2); :}
-              ;
-
-unary_expr ::= MINUS:op num:e
+expr ::= cexpr:e  {: RESULT = e; :}
+       | NOT:op expr:e
                         {: RESULT = new UnaryExpr(exleft, exright,
                                                    op, e); :}
+       | expr:e1 AND:op expr:e2
+                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
+                                                   e1, op, e2); :}
+       | expr:e1 OR:op expr:e2
+                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
+                                                   e1, op, e2); :}
+       | expr:e1 IF:op1 expr:e2 ELSE:op2 expr:e3  {: RESULT = new IfExpr(e1xleft, e3xright, e1, e2, e3); :}
+       ;
+
+cexpr ::= ID:id  {: RESULT = new Identifier(idxleft, idxright, id); :}
+       | literal:l
+                        {: RESULT = l; :}
+       | expr:e1 AND:op expr:e2
+                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
+                                                   e1, op, e2); :}
+       | expr:e1 OR:op expr:e2
+                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
+                                                   e1, op, e2); :}
+       | LPAR:l expr:e RPAR:r {: RESULT = e ; :}
+       | member_expr:m
+                        {: RESULT = m; :}
+       | index_expr:i
+                        {: RESULT = i; :}
+       | binary_expr:e  {: RESULT = e; :}
+       | MINUS:op cexpr:e
+                        {: RESULT = new UnaryExpr(exleft, exright,
+                                                   op, e); :}
+       ;
+
+binary_expr ::= cexpr:e1 MUL:op cexpr:e2
+                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
+                                                   e1, op, e2); :}
+              | cexpr:e1 DIV:op cexpr:e2
+                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
+                                                   e1, op, e2); :}
+              | cexpr:e1 MOD:op cexpr:e2
+                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
+                                                   e1, op, e2); :}
+              | cexpr:e1 PLUS:op cexpr:e2
+                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
+                                                   e1, op, e2); :}
+              | cexpr:e1 MINUS:op cexpr:e2
+                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
+                                                   e1, op, e2); :}
+              | cexpr:e1 EQUAL:op cexpr:e2
+                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
+                                                   e1, op, e2); :}
+              | cexpr:e1 NEQ:op cexpr:e2
+                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
+                                                   e1, op, e2); :}
+              | cexpr:e1 LEQ:op cexpr:e2
+                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
+                                                   e1, op, e2); :}
+              | cexpr:e1 GEQ:op cexpr:e2
+                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
+                                                   e1, op, e2); :}
+              | cexpr:e1 LT:op cexpr:e2
+                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
+                                                   e1, op, e2); :}
+              | cexpr:e1 GT:op cexpr:e2
+                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
+                                                   e1, op, e2); :}
+              | cexpr:e1 IS:op cexpr:e2
+                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
+                                                   e1, op, e2); :}
               ;
+
+member_expr ::= cexpr:e DOT:d ID:id   {: RESULT = new Identifier(exleft, exright, id); :}/*Wrong*/
+            ;
+
+index_expr ::= cexpr:ce  LBR:l expr:e  RBR:r   {: RESULT = new ExprStmt(cexleft, cexright, e); :}/*wrong*/
+            ;
+
+target ::= ID:id {: RESULT = id; :}
+         | member_expr:m {: RESULT = m; :}  
+         | index_expr:i {: RESULT = i; :}  
+         ;
