@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import java_cup.runtime.*;
@@ -95,6 +96,15 @@ parser code {:
 /* The following code section is copied verbatim to the class that performs
  * production-rule actions. */
 action code {:
+    class FuncBody {
+        public List<Declaration> fbd;
+        public List<Stmt> sl;
+        
+        public FuncBody(List<Declaration> fbd, List<Stmt> sl) {
+            this.fbd = fbd;
+            this.sl = sl;
+        }
+    }
 
     /** Return a mutable list initially containing the single value ITEM. */
     <T> List<T> single(T item) {
@@ -110,6 +120,13 @@ action code {:
     <T> List<T> combine(List<T> list, T item) {
         if (item != null) {
             list.add(item);
+        }
+        return list;
+    }
+
+    <T> List<T> combine(List<T> list, List<T> item) {
+        if (item != null) {
+            list.addAll(item);
         }
         return list;
     }
@@ -131,6 +148,14 @@ action code {:
                                                  first.getLocation()[1]);
     }
 
+    /** Return the rightmost non-whitespace location in NODES, or null if NODES is empty. */
+    ComplexSymbolFactory.Location getRight(List<? extends Node> nodes) {
+        if (nodes.isEmpty()) return null;
+        Node last = nodes.get(nodes.size()-1);
+        return new ComplexSymbolFactory.Location(last.getLocation()[2],
+                                              last.getLocation()[3]);
+    }
+
 :}
 
 /* Terminal symbols (tokens returned by the lexer).  The declaration
@@ -142,18 +167,19 @@ action code {:
  * semantic value of type <type> for these symbols that may be referenced
  * in actions ( {: ... :} ).
  */
-terminal NEWLINE;
+terminal NEWLINE, DEDENT, INDENT;
 
 terminal String PLUS; 
 terminal String MUL;
 terminal String DIV;
 terminal String MOD;
 terminal String MINUS;
+terminal String UMINUS;
 
 terminal String LBR;
 terminal String RBR;
-terminal variable RPAR;
-terminal variable LPAR;
+terminal String RPAR;
+terminal String LPAR;
 
 
 terminal String EQUAL;
@@ -166,9 +192,9 @@ terminal String IS;
 
 
 terminal String STRING;
+terminal String NONE; 
 terminal Integer NUMBER;
 terminal Boolean BOOL;
-terminal String NONE; 
 
 
 terminal String FOR;
@@ -182,40 +208,40 @@ terminal String AND;
 terminal String OR;
 
 terminal String NOT;
-
-terminal variable WITH;
-terminal variable ARROW;
-terminal variable CONTINUE;
-terminal variable FINALLY;
-terminal variable GLOBAL;
-terminal variable IMPORT;
-terminal variable LAMBDA;
-terminal variable ASSERT;
-terminal variable EXCEPT;
-terminal variable RETURN;
-terminal variable DEDENT;
-terminal variable INDENT;
-terminal variable YIELD;
-terminal variable BREAK;
-terminal variable COMMA;
-terminal variable COLON;
 terminal String ID;
-terminal variable DEL;
-terminal variable ASSIGN;
-terminal variable NONLOCAL;
-terminal variable AWAIT;
-terminal variable CLASS;
-terminal variable RAISE;
-terminal variable PASS;
-terminal variable FROM;
-terminal variable DEF;
-terminal variable TRY;
 terminal String DOT;
-terminal variable AS;
+
+
+terminal UNRECOGNIZED;
+terminal String ARROW;
+terminal String GLOBAL;
+terminal String RETURN;
+terminal String COMMA;
+terminal String COLON;
+terminal String ASSIGN;
+terminal String NONLOCAL;
+terminal String CLASS;
+terminal String PASS;
+terminal String DEF;
+terminal String AS;
+terminal String TRY;
+terminal String DEL;
+terminal String FROM;
+terminal String WITH;
+terminal String RAISE;
+terminal String AWAIT;
+terminal String BREAK; 
+terminal String YIELD;
+terminal String EXCEPT;
+terminal String ASSERT;
+terminal String LAMBDA;
+terminal String IMPORT;
+terminal String FINALLY;
+terminal String CONTINUE;
 
 /* Returned by the lexer for erroneous tokens.  Since it does not appear in
  * the grammar, it indicates a syntax error. */
-terminal UNRECOGNIZED;   
+/* Abaixo todos os símbolos terminais não utilizados para os testes.*/
 
 /* Nonterminal symbols (defined in production rules below).
  * As for terminal symbols, 
@@ -223,31 +249,48 @@ terminal UNRECOGNIZED;
  * defines the listed nonterminal identifier symbols to have semantic values
  * of type <type>. */
 
-non terminal Program           program;
-non terminal List<Declaration> program_head;
-non terminal List<Stmt>        stmt_list, opt_stmt_list;
-non terminal Stmt              stmt, expr_stmt;
-non terminal Expr              expr, binary_expr, cexpr, member_expr, index_expr, target;
-non terminal Literal           literal;
-
+non terminal Program            program;
+non terminal List<Declaration>  program_head, fun_body_decs, class_body, class_body_defs;
+non terminal List<Stmt>         stmt_list, opt_stmt_list, block, else_body;
+non terminal Stmt               stmt, simple_stmt;
+non terminal Expr               expr, binary_expr, cexpr, target;
+non terminal Literal            literal;
+non terminal StringLiteral      comp_op;
+non terminal Identifier         identifier;
+non terminal VarDef var_def;
+non terminal TypedVar typed_var;
+non terminal TypeAnnotation type, ret_type;
+non terminal List<TypedVar> typed_vars;
+non terminal List<Expr> opt_target, expr_list;
+non terminal IndexExpr index_expr;
+non terminal MemberExpr member_expr;
+non terminal FuncDef fun_def;
+non terminal ClassDef class_def;
+non terminal GlobalDecl global_decl;
+non terminal NonLocalDecl nonlocal_decl;
 
 /* Precedences (lowest to highest) for resolving what would otherwise be
  * ambiguities in the form of shift/reduce conflicts.. */
+precedence left OR;
+precedence left AND;
+precedence left NOT;
+
+precedence nonassoc EQUAL, NEQ, LT, GT, LEQ, GEQ, IS;
+
 precedence left PLUS; 
+precedence left MINUS;
 precedence left MUL;
 precedence left DIV;
 precedence left MOD;
-precedence left MINUS;
+precedence left UMINUS;
 
-precedence left AND;
-precedence left OR;
 
 precedence left DOT;
-precedence left RBR;
+precedence left COMMA;
 precedence left LBR;
+precedence left RBR;
 
-precedence right IF;
-precedence right ELSE;
+precedence right IF, ELSE;
 
 
 /* The start symbol. */
@@ -256,16 +299,18 @@ start with program;
 
 /*****  GRAMMAR RULES *****/
 
-program ::= program_head:d opt_stmt_list:s
-        {: RESULT = new Program(d.isEmpty() ? getLeft(s) : getLeft(d),
-                                sxright, d, s, errors);
-        :}
-        ;
+program ::= program_head:d opt_stmt_list:s {:
+    ComplexSymbolFactory.Location left = d.isEmpty() ? getLeft(s) : getLeft(d);
+    if (left == null) left = new ComplexSymbolFactory.Location(1,1);
+    RESULT = new Program(left, sxright, d, s, errors);
+:};
 
 /* Initial list of declarations. */
-program_head ::= /* not implemented; currently matches empty string */
-                                     {: RESULT = empty(); :}
-                ;
+program_head ::= program_head:d var_def:vd {: RESULT = combine(d, vd); :}
+               | program_head:d class_def:cd {: RESULT = combine(d, cd); :}
+               | program_head:d fun_def:fd {: RESULT = combine(d, fd); :}
+               | program_head:d error:e {: RESULT = d; :}
+               | {: RESULT = empty(); :};
 
 opt_stmt_list ::=                    {: RESULT = empty(); :}
                 | stmt_list:s        {: RESULT = s; :}
@@ -274,19 +319,29 @@ opt_stmt_list ::=                    {: RESULT = empty(); :}
 stmt_list ::= stmt:s                 {: RESULT = single(s); :}
             | stmt_list:l stmt:s     {: RESULT = combine(l, s); :}
             | stmt_list:l error      {: RESULT = l; :}
-            /* If there is a syntax error in the source, this says to discard
-             * symbols from the parsing stack and perform reductions until
-             * there is a stmt_list on top of the stack, and then to discard
-             * input symbols until it is possible to shift again, reporting
-             * a syntax error. */
             ;
+            
+identifier ::= ID:idStr {: RESULT = new Identifier(idStrxleft, idStrxright, idStr); :};
 
-stmt ::= expr_stmt:s NEWLINE {: RESULT = s; :}
-              ;
+stmt ::= simple_stmt:s NEWLINE {: RESULT = s; :}
+       | WHILE:wh expr:cond COLON block:b {: 
+           RESULT = new WhileStmt(whxleft, getRight(b), cond, b); 
+       :}
+       | FOR:f identifier:id IN expr:e COLON block:b {: 
+           RESULT = new ForStmt(fxleft, getRight(b), id, e, b); 
+       :}
+       | IF:i expr:cond COLON block:b else_body:elb {: 
+           RESULT = new IfStmt(ixleft, getRight(elb), cond, b, elb); 
+       :};
+       
 
-
-expr_stmt ::= expr:e    {: RESULT = new ExprStmt(exleft, exright, e); :}
-            ;
+simple_stmt ::= PASS:p {: RESULT = null; :}
+              | expr:e {: RESULT = new ExprStmt(exleft, exright, e); :}
+              | RETURN:r expr:e {: RESULT = new ReturnStmt(rxleft, exright, e); :}
+              | RETURN:r {: RESULT = new ReturnStmt(rxleft, rxright, null); :}
+              | opt_target:ot expr:e {: 
+                  RESULT = new AssignStmt(getLeft(ot), exright, ot, e); 
+              :};
 
 literal ::= NONE:no   {: RESULT = new NoneLiteral(noxleft, noxright); :}
           | NUMBER:n       {: RESULT = new IntegerLiteral(nxleft, nxright, n); :}
@@ -296,7 +351,7 @@ literal ::= NONE:no   {: RESULT = new NoneLiteral(noxleft, noxright); :}
 
 expr ::= cexpr:e  {: RESULT = e; :}
        | NOT:op expr:e
-                        {: RESULT = new UnaryExpr(exleft, exright,
+                        {: RESULT = new UnaryExpr(opxleft, exright,
                                                    op, e); :}
        | expr:e1 AND:op expr:e2
                         {: RESULT = new BinaryExpr(e1xleft, e2xright,
@@ -304,74 +359,132 @@ expr ::= cexpr:e  {: RESULT = e; :}
        | expr:e1 OR:op expr:e2
                         {: RESULT = new BinaryExpr(e1xleft, e2xright,
                                                    e1, op, e2); :}
-       | expr:e1 IF:op1 expr:e2 ELSE:op2 expr:e3  {: RESULT = new IfExpr(e1xleft, e3xright, e1, e2, e3); :}
+       | expr:e1 IF expr:e2 ELSE expr:e3  {: RESULT = new IfExpr(e1xleft, e3xright, e2, e1, e3); :}
        ;
 
-cexpr ::= ID:id  {: RESULT = new Identifier(idxleft, idxright, id); :}
-       | literal:l
-                        {: RESULT = l; :}
-       | expr:e1 AND:op expr:e2
-                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
-                                                   e1, op, e2); :}
-       | expr:e1 OR:op expr:e2
-                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
-                                                   e1, op, e2); :}
-       | LPAR:l expr:e RPAR:r {: RESULT = e ; :}
-       | member_expr:m
-                        {: RESULT = m; :}
-       | index_expr:i
-                        {: RESULT = i; :}
-       | binary_expr:e  {: RESULT = e; :}
-       | MINUS:op cexpr:e
-                        {: RESULT = new UnaryExpr(exleft, exright,
-                                                   op, e); :}
-       ;
+binary_expr ::= identifier:id {: RESULT = id; :}
+        | literal:l {: RESULT = l; :}
+        | LBR:lbr expr_list:l RBR:rbr {: RESULT = new ListExpr(lbrxleft, rbrxright, l); :}
+        | LPAR:lpar expr:e RPAR:rpar {: RESULT = e; :}
+        | member_expr:m {: RESULT = m; :}
+        | index_expr:i {: RESULT = i; :}
+        | member_expr:m LPAR expr_list:l RPAR:rpar {: 
+            RESULT = new MethodCallExpr(mxleft, rparxright, m, l); 
+        :}
+        | identifier:id LPAR expr_list:l RPAR:rpar {: 
+            RESULT = new CallExpr(idxleft, rparxright, id, l); 
+        :}
+        | binary_expr:p1 PLUS:bo binary_expr:p2 {: 
+            RESULT = new BinaryExpr(p1xleft, p2xright, p1, bo, p2); 
+        :}
+        | binary_expr:p1 MINUS:bo binary_expr:p2 {: 
+            RESULT = new BinaryExpr(p1xleft, p2xright, p1, bo, p2); 
+        :}
+        | binary_expr:p1 MUL:bo binary_expr:p2 {: 
+            RESULT = new BinaryExpr(p1xleft, p2xright, p1, bo, p2); 
+        :}
+        | binary_expr:p1 DIV:bo binary_expr:p2 {: 
+            RESULT = new BinaryExpr(p1xleft, p2xright, p1, bo, p2); 
+        :}
+        | binary_expr:p1 MOD:bo binary_expr:p2 {: 
+            RESULT = new BinaryExpr(p1xleft, p2xright, p1, bo, p2); 
+        :}
+        | MINUS:m binary_expr:p {: RESULT = new UnaryExpr(mxleft, pxright, m, p); :} %prec UMINUS;
 
-binary_expr ::= cexpr:e1 MUL:op cexpr:e2
-                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
-                                                   e1, op, e2); :}
-              | cexpr:e1 DIV:op cexpr:e2
-                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
-                                                   e1, op, e2); :}
-              | cexpr:e1 MOD:op cexpr:e2
-                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
-                                                   e1, op, e2); :}
-              | cexpr:e1 PLUS:op cexpr:e2
-                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
-                                                   e1, op, e2); :}
-              | cexpr:e1 MINUS:op cexpr:e2
-                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
-                                                   e1, op, e2); :}
-              | cexpr:e1 EQUAL:op cexpr:e2
-                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
-                                                   e1, op, e2); :}
-              | cexpr:e1 NEQ:op cexpr:e2
-                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
-                                                   e1, op, e2); :}
-              | cexpr:e1 LEQ:op cexpr:e2
-                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
-                                                   e1, op, e2); :}
-              | cexpr:e1 GEQ:op cexpr:e2
-                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
-                                                   e1, op, e2); :}
-              | cexpr:e1 LT:op cexpr:e2
-                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
-                                                   e1, op, e2); :}
-              | cexpr:e1 GT:op cexpr:e2
-                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
-                                                   e1, op, e2); :}
-              | cexpr:e1 IS:op cexpr:e2
-                        {: RESULT = new BinaryExpr(e1xleft, e2xright,
-                                                   e1, op, e2); :}
-              ;
+cexpr ::= binary_expr:pe {: RESULT = pe; :}
+         | binary_expr:p1 comp_op:co cexpr:p2 {: 
+             RESULT = new BinaryExpr(p1xleft, p2xright, p1, co.value, p2); 
+         :};
 
-member_expr ::= cexpr:e DOT:d ID:id   {: RESULT = new Identifier(exleft, exright, id); :}/*Wrong*/
-            ;
+type ::= identifier:id {: RESULT = new ClassType(idxleft, idxright, id.name); :}
+       | STRING:str {: RESULT = new ClassType(strxleft, strxright, str); :}
+       | LBR:lbr type:t RBR:rbr {: RESULT = new ListType(lbrxleft, rbrxright, t); :};
 
-index_expr ::= cexpr:ce  LBR:l expr:e  RBR:r   {: RESULT = new ExprStmt(cexleft, cexright, e); :}/*wrong*/
-            ;
+ret_type ::= ARROW type:t {: RESULT = t; :}
+           | {: RESULT = new ClassType(null, null,"<None>"); :};
 
-target ::= ID:id {: RESULT = id; :}
-         | member_expr:m {: RESULT = m; :}  
-         | index_expr:i {: RESULT = i; :}  
-         ;
+typed_vars ::= typed_var:tv {: RESULT = single(tv); :}
+             | typed_vars:tvs COMMA typed_var:tv {: RESULT = combine(tvs, tv); :}
+             | typed_vars:tvs COMMA error {: RESULT = tvs; :}
+             | {: RESULT = empty(); :};
+             
+typed_var ::= identifier:id COLON type:t {: 
+    RESULT = new TypedVar(idxleft, txright, id, t); 
+:};
+
+var_def ::= typed_var:t ASSIGN literal:l NEWLINE {: 
+    RESULT = new VarDef(txleft, lxright, t, l); 
+:};
+
+nonlocal_decl ::= NONLOCAL:n identifier:id NEWLINE {: 
+    RESULT = new NonLocalDecl(nxleft, idxright, id); 
+:};
+
+
+global_decl ::= GLOBAL:g identifier:id NEWLINE {: 
+    RESULT = new GlobalDecl(gxleft, idxright, id); 
+:};
+
+else_body ::= ELSE:el COLON block:b {: RESULT = b; :}
+            | ELIF:el expr:cond COLON block:b else_body:elb {: 
+                RESULT = single(new IfStmt(elxleft, getRight(elb), cond, b, elb)); 
+            :}
+            | {: RESULT = empty(); :};
+
+block ::= NEWLINE INDENT stmt_list:sl DEDENT {: RESULT = sl; :};
+    
+opt_target ::= opt_target:ot target:t ASSIGN {: RESULT = combine(ot, t); :}
+             | target:t ASSIGN {: RESULT = single(t); :};
+
+fun_def ::= DEF:def identifier:id LPAR typed_vars:params RPAR ret_type:rt 
+            COLON:col NEWLINE INDENT fun_body_decs:fbd stmt_list:sl DEDENT {: 
+                TypeAnnotation _rt = rt;
+                if ((rt instanceof ClassType) && ((ClassType)rt).className == "<None>") 
+                    _rt = new ClassType(colxright, colxright, "<None>");
+                RESULT = new FuncDef(defxleft, getRight(sl), id, params, _rt, fbd, sl);
+            :};
+
+fun_body_decs ::= fun_body_decs:fbd global_decl:gd {: RESULT = combine(fbd, gd); :}
+                | fun_body_decs:fbd nonlocal_decl:nd {: RESULT = combine(fbd, nd); :}
+                | fun_body_decs:fbd var_def:vd {: RESULT = combine(fbd, vd); :}
+                | fun_body_decs:fbd fun_def:fd {: RESULT = combine(fbd, fd); :}
+                | fun_body_decs:fbd error {: RESULT = fbd; :}
+                | {: RESULT = empty(); :};
+
+class_def ::= CLASS:c identifier:id LPAR identifier:parentId RPAR COLON NEWLINE 
+              INDENT class_body:cb DEDENT {: 
+                  RESULT = new ClassDef(cxleft, getRight(cb), id, parentId, cb); 
+              :}; 
+
+class_body ::= PASS NEWLINE {: RESULT = empty(); :}
+             | class_body_defs:defs {: RESULT = defs; :};
+             
+class_body_defs ::= class_body_defs:defs var_def:vd {: RESULT = combine(defs, vd); :}
+                  | class_body_defs:defs fun_def:fd {: RESULT = combine(defs, fd); :}
+                  | class_body_defs:defs error {: RESULT = defs; :}
+                  | var_def:vd {: RESULT = single(vd); :}
+                  | fun_def:fd {: RESULT = single(fd); :};
+
+expr_list ::= expr:e {: RESULT = single(e); :}
+            | expr_list:el COMMA expr:e {: RESULT = combine(el, e); :}
+            | {: RESULT = new ArrayList<Expr>(); :};
+
+comp_op ::= EQUAL:a {: RESULT = new StringLiteral(axleft, axright, "=="); :}
+          | NEQ:a {: RESULT = new StringLiteral(axleft, axright, "!="); :}
+          | LEQ:a {: RESULT = new StringLiteral(axleft, axright, "<="); :}
+          | GEQ:a {: RESULT = new StringLiteral(axleft, axright, ">="); :}
+          | LT:a {: RESULT = new StringLiteral(axleft, axright, "<"); :}
+          | GT:a {: RESULT = new StringLiteral(axleft, axright, ">"); :}
+          | IS:a {: RESULT = new StringLiteral(axleft, axright, "is"); :};
+
+index_expr ::= binary_expr:p LBR expr:e RBR:rbr {: 
+    RESULT = new IndexExpr(pxleft, rbrxright, p, e); 
+:};
+
+member_expr ::= binary_expr:p DOT identifier:id {: 
+    RESULT = new MemberExpr(pxleft, idxright, p, id); 
+:};
+
+target ::= identifier:id {: RESULT = id; :}
+         | member_expr:m {: RESULT = m; :}
+         | index_expr:i {: RESULT = i; :};
